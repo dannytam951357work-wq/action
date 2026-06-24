@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>預防家暴你要知</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif; 
+            overflow: hidden;
+            background-color: #f7f5f0; 
+            touch-action: none;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        
+        /* 卡通風格 UI 動畫 */
+        .pop-in { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { 
+            0% { opacity: 0; transform: scale(0.8); } 
+            100% { opacity: 1; transform: scale(1); } 
+        }
+        
+        /* 粗邊框與硬陰影按鈕特效 */
+        .btn-cartoon {
+            border: 4px solid #2A1F1D;
+            box-shadow: 4px 4px 0px 0px #2A1F1D;
+            transition: all 0.1s;
+        }
+        .btn-cartoon:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px #2A1F1D;
+        }
+        
+        /* 卡通風格面板 */
+        .panel-cartoon {
+            background-color: #fcfbf8;
+            border: 6px solid #2A1F1D;
+            box-shadow: 8px 8px 0px 0px rgba(42,31,29,0.8);
+            border-radius: 24px;
+        }
+    </style>
+</head>
+<body class="text-[#2A1F1D]">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud" class="absolute top-4 left-0 right-0 px-6 flex justify-between items-start z-10 hidden pointer-events-none">
+        <!-- 生命值 -->
+        <div class="flex items-center gap-3 bg-[#fcfbf8] py-2 px-5 rounded-full border-4 border-[#2A1F1D] shadow-[4px_4px_0px_0px_#2A1F1D] pointer-events-auto">
+            <div id="lives" class="text-3xl tracking-widest">❤️❤️❤️</div>
+            <div class="w-1 h-8 bg-[#2A1F1D] rounded-full mx-1"></div>
+            <div id="shield-icon" class="text-3xl opacity-30 transition-opacity duration-300 filter grayscale">🛡️</div>
+        </div>
+        
+        <!-- 右側控制與時間 -->
+        <div class="flex flex-col gap-3 items-end pointer-events-auto">
+            <div class="flex gap-2">
+                <!-- 新增：右上角回到主畫面按鈕 -->
+                <button id="btn-home-hud" class="btn-cartoon bg-[#8BC3C8] text-[#2A1F1D] rounded-full flex items-center justify-center px-4 h-14 text-lg font-black tracking-wide">
+                    🏠 主畫面
+                </button>
+                <button id="btn-pause" class="btn-cartoon bg-[#F3C569] text-[#2A1F1D] rounded-full flex items-center justify-center w-14 h-14 text-2xl font-black">
+                    ||
+                </button>
+            </div>
+            <div class="bg-[#fcfbf8] py-2 px-5 rounded-full border-4 border-[#2A1F1D] shadow-[4px_4px_0px_0px_#2A1F1D]">
+                <div class="text-3xl font-black text-[#E68943]">
+                    <span id="timer">40</span><span class="text-xl text-[#2A1F1D] ml-1">s</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-start" class="absolute inset-0 flex items-center justify-center bg-[#2A1F1D] bg-opacity-40 z-20 backdrop-blur-sm">
+        <div class="panel-cartoon p-8 max-w-md w-11/12 text-center pop-in max-h-[90vh] overflow-y-auto">
+            <h1 class="text-4xl font-black mb-6 text-[#D56E3B] tracking-wide">預防家暴你要知</h1>
+            
+            <div class="text-left text-sm font-bold text-[#574845] space-y-4 mb-8">
+                <p class="text-center text-lg">在街道上閃避危機，撐過 <strong>40 秒</strong>！</p>
+                
+                <div class="flex items-center gap-3 bg-[#F3C569] p-3 rounded-xl border-4 border-[#2A1F1D]">
+                    <span class="text-3xl">💣</span>
+                    <div>
+                        <strong class="text-[#D56E3B] text-base">閃避炸彈 (暴力)：</strong><br>
+                        迅速離開紅色警戒區！
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 bg-[#8BC3C8] p-3 rounded-xl border-4 border-[#2A1F1D]">
+                    <span class="text-3xl">✨</span>
+                    <div>
+                        <strong class="text-[#2A1F1D] text-base">收集資源泡泡：</strong><br>
+                        獲得 <span class="text-[#0d596b]">辨識暴力警訊❤️</span> 或 <span class="text-[#0d596b]">及早對外求助🛡️</span>。
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 bg-[#b5a6c9] p-3 rounded-xl border-4 border-[#2A1F1D]">
+                    <span class="text-3xl">⚠️</span>
+                    <div>
+                        <strong class="text-[#2A1F1D] text-base">小心紫色陷阱：</strong><br>
+                        踩到會導致 <span class="text-[#5b21b6]">情緒失控😡</span> 或 <span class="text-[#5b21b6]">權力控制🔄</span>。
+                    </div>
+                </div>
+            </div>
+            
+            <button id="btn-start" class="btn-cartoon bg-[#E68943] text-[#fcfbf8] text-2xl font-black py-4 px-8 rounded-full w-full tracking-wider">
+                開始遊戲
+            </button>
+        </div>
+    </div>
+
+    <div id="screen-pause" class="absolute inset-0 flex items-center justify-center bg-[#2A1F1D] bg-opacity-60 z-20 hidden backdrop-blur-sm">
+        <div class="panel-cartoon p-8 max-w-sm w-11/12 text-center pop-in">
+            <h1 class="text-4xl font-black mb-8 text-[#2A1F1D]">暫停中</h1>
+            <div class="flex flex-col gap-4">
+                <button id="btn-resume-pause" class="btn-cartoon bg-[#8BC3C8] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    繼續 ▶️
+                </button>
+                <button id="btn-restart-pause" class="btn-cartoon bg-[#E68943] text-white text-xl font-black py-4 px-8 rounded-full w-full">
+                    重來 🔄
+                </button>
+                <button id="btn-home-pause" class="btn-cartoon bg-[#fcfbf8] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    回到主畫面 🏠
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-gameover" class="absolute inset-0 flex items-center justify-center bg-[#2A1F1D] bg-opacity-60 z-20 hidden backdrop-blur-sm">
+        <div class="panel-cartoon p-8 max-w-md w-11/12 text-center border-[#D56E3B]">
+            <div class="text-6xl mb-4">🩹</div>
+            <h1 class="text-3xl font-black mb-4 text-[#D56E3B]">防線被突破了</h1>
+            <p class="mb-6 font-bold text-[#574845] leading-relaxed">
+                遇到困難不要氣餒。<br>
+                現實中若遭遇暴力，請尋求專業協助 (如999專線)。
+            </p>
+            <div class="flex flex-col gap-4">
+                <button id="btn-restart-fail" class="btn-cartoon bg-[#F3C569] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    再試一次
+                </button>
+                <button id="btn-home-fail" class="btn-cartoon bg-[#fcfbf8] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    回到主畫面 🏠
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-victory" class="absolute inset-0 flex items-center justify-center bg-[#2A1F1D] bg-opacity-60 z-20 hidden backdrop-blur-sm">
+        <div class="panel-cartoon p-8 max-w-md w-11/12 text-center border-[#8BC3C8]">
+            <div class="text-6xl mb-4">🏆</div>
+            <h1 class="text-4xl font-black mb-4 text-[#5C98A6]">防衛成功！</h1>
+            <p class="mb-6 font-bold text-[#574845] leading-relaxed">
+                你成功撐過了 40 秒！<br>
+                建立起了堅固的安全網。
+            </p>
+            <div class="flex flex-col gap-4">
+                <button id="btn-restart-win" class="btn-cartoon bg-[#8BC3C8] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    再次遊玩
+                </button>
+                <button id="btn-home-win" class="btn-cartoon bg-[#fcfbf8] text-[#2A1F1D] text-xl font-black py-4 px-8 rounded-full w-full">
+                    回到主畫面 🏠
+                </button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 保留原本的色盤，這些顏色仍被用於特效、道具和炸彈
+    const pal = {
+        line: '#2A1F1D',       
+        sky: '#6EB2B9',        
+        skyLight: '#8BC3C8',
+        ground: '#574845',     
+        groundLight: '#75625D',
+        bldOrange: '#E68943',  
+        bldYellow: '#F3C569',  
+        bldDark: '#D56E3B',    
+        roofDark: '#5E5451',   
+        roofOrange: '#D9894A', 
+        windowBlue: '#5C98A6', 
+        windowDark: '#3A3935', 
+        plant: '#899E71',      
+        plantDark: '#6A7D56',
+        cloud: '#D1D1B4'       
+    };
+
+    const screenStart = document.getElementById('screen-start');
+    const screenGameOver = document.getElementById('screen-gameover');
+    const screenVictory = document.getElementById('screen-victory');
+    const screenPause = document.getElementById('screen-pause');
+    const hud = document.getElementById('hud');
+    const timerEl = document.getElementById('timer');
+    const livesEl = document.getElementById('lives');
+    const shieldIconEl = document.getElementById('shield-icon');
+
+    let cw, ch;
+    let lastTime = 0;
+    let gameState = 'menu';
+    let timeLeft = 40;
+    let hazardSpawnTimer = 0;
+    let itemSpawnTimer = 0;
+    
+    let hazards = [];
+    let items = [];
+    let particles = [];
+
+    const violenceTypes = ["言語攻擊", "情緒勒索", "肢體暴力", "經濟控制", "冷暴力"];
+    const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+    const pointer = { active: false, x: 0, y: 0 };
+
+    const arena = { x: 0, y: 0, radiusX: 0, radiusY: 0 };
+    let circleRadius = 0;
+
+    // --- 載入背景圖片 ---
+    const bgImage = new Image();
+    let bgLoaded = false;
+    bgImage.onload = () => { bgLoaded = true; };
+    bgImage.src = '新背景.jpg';
+
+    // --- 儲存主角影格 (1-6張透明 PNG) ---
+    const playerSpriteFrames = [];
+    let spritesLoaded = false;
+    const spriteSources = [
+        'player_walk_1.png', 'player_walk_2.png', 'player_walk_3.png',
+        'player_walk_4.png', 'player_walk_5.png', 'player_walk_6.png'
+    ];
+
+    function loadSprites() {
+        let loadedCount = 0;
+        spriteSources.forEach((src, index) => {
+            const img = new Image();
+            img.onload = () => {
+                playerSpriteFrames[index] = img;
+                loadedCount++;
+                if(loadedCount === spriteSources.length) {
+                    spritesLoaded = true;
+                }
+            };
+            img.onerror = () => {
+                console.warn("找不到圖片: " + src + "，系統將自動使用備用繪圖。");
+                loadedCount++;
+                if(loadedCount === spriteSources.length) spritesLoaded = true;
+            };
+            img.src = src;
+        });
+    }
+    loadSprites();
+
+    function resize() {
+        cw = window.innerWidth;
+        ch = window.innerHeight;
+        canvas.width = cw;
+        canvas.height = ch;
+        
+        circleRadius = Math.min(cw, ch) * 0.45;
+        if (circleRadius > 400) circleRadius = 400; 
+
+        // 擴大遊玩區域，完美貼合地表邊界
+        arena.x = cw / 2;
+        arena.y = ch / 2 + circleRadius * 0.6; // 對齊 ground 的橢圓中心
+        arena.radiusX = circleRadius * 0.9;    
+        arena.radiusY = circleRadius * 0.48;   
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 輸入監聽
+    window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+    window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+    window.addEventListener('pointerdown', e => {
+        if (e.target !== canvas) return;
+        pointer.active = true; pointer.x = e.clientX; pointer.y = e.clientY;
+    });
+    window.addEventListener('pointermove', e => {
+        if (pointer.active) { pointer.x = e.clientX; pointer.y = e.clientY; }
+    });
+    window.addEventListener('pointerup', () => { pointer.active = false; });
+    window.addEventListener('pointercancel', () => { pointer.active = false; });
+
+    function drawStrokeFill(ctx, pathFunc, fillColor, lineWidth = 4) {
+        ctx.beginPath();
+        pathFunc();
+        if (fillColor) {
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+        }
+        ctx.lineWidth = lineWidth;
+        ctx.strokeStyle = pal.line;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    const player = {
+        x: 0, y: 0, baseRadius: 38, radius: 38,
+        speed: 250, lives: 3, hasShield: false, invincibleTimer: 0,
+        facingRight: true, flipScale: 1, flippingState: 'none',
+        walkCycle: 0, isMoving: false,
+        reverseTimer: 0, enlargeTimer: 0, starInvincibleTimer: 0,
+
+        reset: function() {
+            this.x = arena.x; this.y = arena.y;
+            this.lives = 3; this.hasShield = false; 
+            this.invincibleTimer = 0;
+            this.reverseTimer = 0; this.enlargeTimer = 0; this.starInvincibleTimer = 0;
+            this.radius = this.baseRadius;
+            this.facingRight = true; this.flipScale = 1; this.flippingState = 'none';
+            this.walkCycle = 0; this.isMoving = false;
+            pointer.active = false;
+        },
+
+        update: function(dt) {
+            if (this.invincibleTimer > 0) this.invincibleTimer -= dt;
+            if (this.reverseTimer > 0) this.reverseTimer -= dt;
+            if (this.starInvincibleTimer > 0) {
+                this.starInvincibleTimer -= dt;
+                this.invincibleTimer = 0.1; 
+            }
+            if (this.enlargeTimer > 0) {
+                this.enlargeTimer -= dt;
+                this.radius = this.baseRadius * 1.5; 
+            } else {
+                this.radius = this.baseRadius;
+            }
+
+            let vx = 0, vy = 0;
+            this.isMoving = false;
+            let dir = this.reverseTimer > 0 ? -1 : 1;
+
+            if (keys.ArrowUp || keys.w) vy -= 1 * dir;
+            if (keys.ArrowDown || keys.s) vy += 1 * dir;
+            if (keys.ArrowLeft || keys.a) vx -= 1 * dir;
+            if (keys.ArrowRight || keys.d) vx += 1 * dir;
+
+            let logicalMovingLeft = vx < 0;
+            let logicalMovingRight = vx > 0;
+            
+            // 處理轉向動畫：當需要換向且未在轉向狀態中，啟動縮扁狀態
+            if (logicalMovingLeft && this.facingRight && this.flippingState === 'none') {
+                this.flippingState = 'shrinking';
+            }
+            if (logicalMovingRight && !this.facingRight && this.flippingState === 'none') {
+                this.flippingState = 'shrinking';
+            }
+
+            // 轉向的彈性收縮與拉伸 (Squish & Flip)
+            const flipSpeed = 15;
+            if (this.flippingState === 'shrinking') {
+                this.flipScale -= flipSpeed * dt;
+                if (this.flipScale <= 0) {
+                    this.flipScale = 0; 
+                    this.facingRight = !this.facingRight; // 在完全縮扁時切換鏡像朝向
+                    this.flippingState = 'growing';
+                }
+            } else if (this.flippingState === 'growing') {
+                this.flipScale += flipSpeed * dt;
+                if (this.flipScale >= 1) { 
+                    this.flipScale = 1; 
+                    this.flippingState = 'none'; 
+                }
+            }
+
+            if (vx !== 0 || vy !== 0) {
+                let len = Math.sqrt(vx*vx + vy*vy);
+                this.x += (vx/len) * this.speed * dt;
+                this.y += (vy/len) * this.speed * dt;
+                pointer.active = false; 
+                this.isMoving = true;
+            } else if (pointer.active) {
+                let dx = pointer.x - this.x; let dy = pointer.y - this.y;
+                if (dir === -1) { dx = -dx; dy = -dy; }
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > 5) {
+                    let moveDist = Math.min(this.speed * dt, dist);
+                    this.x += (dx/dist) * moveDist;
+                    this.y += (dy/dist) * moveDist;
+                    
+                    if (dx < -2 && this.facingRight && this.flippingState === 'none') this.flippingState = 'shrinking';
+                    if (dx > 2 && !this.facingRight && this.flippingState === 'none') this.flippingState = 'shrinking';
+                    this.isMoving = true;
+                }
+            }
+
+            if (this.isMoving) this.walkCycle += dt * 18;
+            else this.walkCycle = 0;
+
+            // 限制在前景橢圓形範圍內
+            let dx = this.x - arena.x;
+            let dy = this.y - arena.y;
+            let nx = dx / arena.radiusX;
+            let ny = dy / arena.radiusY;
+            let distToCenter = Math.sqrt(nx*nx + ny*ny);
+            let normalizedPlayerRad = this.radius / arena.radiusX;
+
+            if (distToCenter > 1 - normalizedPlayerRad) {
+                let scale = (1 - normalizedPlayerRad) / distToCenter;
+                this.x = arena.x + dx * scale;
+                this.y = arena.y + dy * scale;
+            }
+        },
+
+        draw: function(ctx) {
+            // 受傷閃爍
+            if (this.invincibleTimer > 0 && this.starInvincibleTimer <= 0 && Math.floor(Date.now() / 150) % 2 === 0) return;
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // 重要：使用 directionSign 控制鏡像！
+            let directionSign = this.facingRight ? 1 : -1;
+            let visualScale = this.radius / this.baseRadius;
+            ctx.scale(directionSign * this.flipScale * visualScale, visualScale);
+
+            let bodyBounce = 0;
+            if (this.isMoving) {
+                bodyBounce = -Math.abs(Math.sin(this.walkCycle * 0.5)) * 4;
+            }
+
+            // 混亂問號提示 (加入暈眩盤旋特效)
+            if (this.reverseTimer > 0) {
+                ctx.save();
+                ctx.scale(directionSign, 1); 
+                let swirlAngle = Date.now() / 200;
+                ctx.translate(0, -150 + bodyBounce); // 移到頭頂上方
+                for(let i=0; i<3; i++) {
+                    let a = swirlAngle + (Math.PI * 2 / 3) * i;
+                    let hx = Math.cos(a) * 35;
+                    let hy = Math.sin(a) * 10;
+                    ctx.fillStyle = '#9f7aea';
+                    ctx.font = '900 28px Nunito';
+                    ctx.textAlign = 'center'; 
+                    ctx.fillText("?", hx, hy);
+                }
+                ctx.restore();
+            }
+
+            ctx.translate(0, bodyBounce); 
+
+            // 1. 優先繪製您準備好的透明 PNG Walk Cycle 影格
+            if (spritesLoaded && playerSpriteFrames.length > 0 && playerSpriteFrames[0]) {
+                let frameIndex = 0;
+                if (this.isMoving) {
+                    frameIndex = Math.floor(this.walkCycle / 2.5) % playerSpriteFrames.length;
+                }
+                const currentImg = playerSpriteFrames[frameIndex];
+                
+                if (currentImg && currentImg.complete) {
+                    // 【人物放大】：以第一張圖為基準，將高度拉大至 180 (相當於之前的變大狀態)
+                    let uniformScale = 1;
+                    if (playerSpriteFrames[0] && playerSpriteFrames[0].complete) {
+                        uniformScale = 180 / playerSpriteFrames[0].height; 
+                    }
+                    
+                    const targetWidth = currentImg.width * uniformScale;
+                    const targetHeight = currentImg.height * uniformScale;
+                    
+                    // 繪製圖片，並以底部對齊
+                    ctx.drawImage(currentImg, -targetWidth / 2, -targetHeight + 30, targetWidth, targetHeight);
+                }
+            } else {
+                // 2. 備用向量角色
+                const footSizeX = 8; const footSizeY = 6;
+                const footYBase = 18; 
+                let leftFootX = -7; let leftFootY = footYBase;
+                let rightFootX = 7; let rightFootY = footYBase;
+
+                if (this.isMoving) {
+                    leftFootX += Math.sin(this.walkCycle) * 12;
+                    rightFootX += Math.sin(this.walkCycle + Math.PI) * 12;
+                    leftFootY -= Math.max(0, Math.cos(this.walkCycle) * 8);
+                    rightFootY -= Math.max(0, Math.cos(this.walkCycle + Math.PI) * 8);
+                }
+
+                drawStrokeFill(ctx, () => ctx.ellipse(leftFootX, leftFootY, footSizeX, footSizeY, 0, 0, Math.PI*2), pal.bldOrange, 3);
+                drawStrokeFill(ctx, () => ctx.ellipse(rightFootX, rightFootY, footSizeX, footSizeY, 0, 0, Math.PI*2), pal.bldOrange, 3);
+
+                let bodyColor = '#fff';
+                if (this.starInvincibleTimer > 0) bodyColor = '#fefcbf';
+                else if (this.enlargeTimer > 0) bodyColor = '#faf5ff';
+                
+                drawStrokeFill(ctx, () => ctx.arc(0, -6, this.baseRadius + 6, 0, Math.PI*2), bodyColor, 4);
+
+                ctx.fillStyle = pal.line;
+                ctx.font = '24px Arial'; 
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                let face = "˙v˙"; 
+                if (this.reverseTimer > 0) face = "x_x";
+                if (this.starInvincibleTimer > 0) face = "⭐";
+                ctx.fillText(face, 2, -4); 
+            }
+
+            // 護盾特效 (不隨角色一同縮水)
+            if (this.hasShield) {
+                ctx.translate(0, -bodyBounce);
+                ctx.beginPath();
+                // 調整護盾位置與半徑，將 Y 座標下移，使人物完全置中於護盾內
+                ctx.ellipse(0, -60, 95, 95, 0, 0, Math.PI*2);
+                ctx.strokeStyle = pal.line;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                ctx.strokeStyle = '#5C98A6'; 
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+
+            // 頭頂道具倒數計時文字
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            let textY = -180 + bodyBounce; // 起始高度置於頭頂
+            
+            ctx.font = '900 18px Nunito';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = pal.line;
+
+            const drawLabel = (icon, time, color) => {
+                let t = `${icon} ${time.toFixed(1)}s`;
+                ctx.strokeText(t, 0, textY);
+                ctx.fillStyle = color;
+                ctx.fillText(t, 0, textY);
+                textY -= 25; 
+            };
+
+            if (this.enlargeTimer > 0) drawLabel('😡', this.enlargeTimer, '#d53f8c');
+            if (this.reverseTimer > 0) drawLabel('🔄', this.reverseTimer, '#9f7aea');
+            ctx.restore();
+        }
+    };
+
+    class Hazard {
+        constructor() {
+            let angle = Math.random() * Math.PI * 2;
+            let rad = Math.random() * 0.85; 
+            this.x = arena.x + Math.cos(angle) * arena.radiusX * rad;
+            this.y = arena.y + Math.sin(angle) * arena.radiusY * rad;
+            
+            this.text = violenceTypes[Math.floor(Math.random() * violenceTypes.length)];
+            this.radius = 45; 
+            this.timer = 0;
+            
+            let difficultyRatio = (40 - timeLeft) / 40; 
+            this.warningDuration = 2.5 - (1.3 * difficultyRatio); 
+            if (this.warningDuration < 1.2) this.warningDuration = 1.2;
+            
+            this.explosionDuration = 0.5;
+            this.state = 'warning';
+            this.markedForDeletion = false;
+        }
+
+        update(dt) {
+            this.timer += dt;
+            if (this.state === 'warning' && this.timer >= this.warningDuration) {
+                this.state = 'exploding';
+                this.timer = 0;
+            } else if (this.state === 'exploding' && this.timer >= this.explosionDuration) {
+                this.markedForDeletion = true;
+            }
+        }
+
+        drawShadow(ctx) {
+            if (this.state === 'warning') {
+                let progress = this.timer / this.warningDuration;
+                
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.radius, this.radius * 0.4, 0, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(42,31,29,${0.2 + progress*0.3})`;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.radius, this.radius * 0.5, 0, 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(213, 110, 59, ${progress})`; 
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 8]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                drawStrokeFill(ctx, () => {
+                    ctx.roundRect(-40, -12, 80, 24, 8); 
+                }, '#fff', 3);
+                
+                ctx.fillStyle = pal.line; 
+                ctx.font = '900 14px Nunito';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(this.text, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        drawEntity(ctx) {
+            if (this.state === 'warning') {
+                let progress = this.timer / this.warningDuration;
+                let startY = this.y - 600; 
+                let currentY = startY + (600 * Math.pow(progress, 2.2)); 
+
+                ctx.save();
+                ctx.translate(this.x, currentY);
+                
+                drawStrokeFill(ctx, () => ctx.arc(0, 0, 20, 0, Math.PI*2), pal.roofDark, 4);
+                drawStrokeFill(ctx, () => { ctx.moveTo(0,-20); ctx.lineTo(10,-30); }, null, 4);
+                
+                ctx.fillStyle = pal.bldOrange;
+                ctx.beginPath(); ctx.arc(10+Math.random()*4, -30+Math.random()*4, 4, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+
+            } else if (this.state === 'exploding') {
+                let progress = this.timer / this.explosionDuration;
+                let currentRadX = this.radius * (0.5 + progress * 0.5);
+                let currentRadY = currentRadX * 0.5; 
+
+                ctx.save();
+                ctx.translate(this.x, this.y - 15);
+                ctx.scale(currentRadX/30, currentRadY/30);
+                
+                drawStrokeFill(ctx, () => {
+                    let spikes = 8;
+                    for(let i=0; i<spikes*2; i++) {
+                        let r = i%2==0 ? 30 : 15;
+                        let a = (i * Math.PI) / spikes;
+                        if(i===0) ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r);
+                        else ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+                    }
+                    ctx.closePath();
+                }, pal.bldOrange, 4);
+                
+                ctx.restore();
+            }
+        }
+    }
+
+    class Item {
+        constructor() {
+            let angle = Math.random() * Math.PI * 2;
+            let rad = Math.random() * 0.8;
+            this.x = arena.x + Math.cos(angle) * arena.radiusX * rad;
+            this.y = arena.y + Math.sin(angle) * arena.radiusY * rad;
+            
+            this.isPositive = Math.random() < 0.7;
+            this.radius = 22;
+            this.timer = 0;
+            this.lifespan = 8; 
+            this.markedForDeletion = false;
+
+            if (this.isPositive) {
+                this.themeColor = '#5C98A6'; // 統一正面道具填色 (深藍綠色)
+                this.borderColor = '#0d596b'; // 統一正面道具外框 (更深的藍綠色)
+                
+                const types = ['heart', 'shield'];
+                this.type = types[Math.floor(Math.random() * types.length)];
+                
+                if (this.type === 'heart') { this.icon = '❤️'; this.text = '辨識暴力警訊'; }
+                else if (this.type === 'shield') { this.icon = '🛡️'; this.text = '及早對外求助'; }
+            } else {
+                this.themeColor = '#9f7aea'; // 統一負面道具填色 (紫色)
+                this.borderColor = '#5b21b6'; // 統一負面道具外框 (深紫色)
+                
+                const types = ['enlarge', 'reverse'];
+                this.type = types[Math.floor(Math.random() * types.length)];
+                if (this.type === 'enlarge') { this.icon = '😡'; this.text = '情緒失控'; }
+                else { this.icon = '🔄'; this.text = '權力控制'; }
+            }
+        }
+
+        update(dt) {
+            this.timer += dt;
+            if (this.timer >= this.lifespan) this.markedForDeletion = true;
+        }
+
+        draw(ctx) {
+            let alpha = 1;
+            if (this.timer > this.lifespan - 2) alpha = 0.5 + 0.5 * Math.sin(this.timer * 15);
+            ctx.globalAlpha = alpha;
+
+            let floatY = Math.sin(Date.now() / 250) * 8;
+
+            ctx.beginPath();
+            ctx.ellipse(this.x, this.y, this.radius * 0.8, this.radius * 0.3, 0, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(42,31,29,0.2)';
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(this.x, this.y - 15 + floatY); 
+
+            // 繪製統一識別色外框的本體
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI*2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = this.borderColor;
+            ctx.stroke();
+
+            // 內部填充統一顏色
+            ctx.beginPath(); 
+            ctx.arc(0, 0, this.radius-4, 0, Math.PI*2);
+            ctx.fillStyle = this.themeColor; 
+            ctx.globalAlpha = alpha * 0.3; 
+            ctx.fill(); 
+            ctx.globalAlpha = alpha;
+
+            ctx.fillStyle = pal.line;
+            ctx.font = '22px Arial';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(this.icon, 0, 2);
+
+            // 依據文字長度動態調整泡泡標籤的寬度，並套用統一外框色
+            let textWidth = this.text.length * 11; 
+            let boxWidth = Math.max(48, textWidth + 12);
+            
+            ctx.beginPath();
+            ctx.roundRect(-boxWidth/2, 26, boxWidth, 20, 6);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = this.borderColor;
+            ctx.stroke();
+            
+            ctx.fillStyle = pal.line; 
+            ctx.font = '900 11px Nunito';
+            ctx.fillText(this.text, 0, 36);
+
+            ctx.restore();
+            ctx.globalAlpha = 1; 
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x; this.y = y - 20;
+            this.vx = (Math.random() - 0.5) * 200;
+            this.vy = (Math.random() - 0.5) * 200 - 50; 
+            this.life = 1.0;
+            this.color = color;
+            this.size = Math.random() * 6 + 4;
+        }
+        update(dt) {
+            this.x += this.vx * dt; this.y += this.vy * dt;
+            this.vy += 200 * dt; 
+            this.life -= dt * 1.5; 
+        }
+        draw(ctx) {
+            if(this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            drawStrokeFill(ctx, () => ctx.arc(this.x, this.y, this.size, 0, Math.PI*2), this.color, 2);
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function createParticles(x, y, color, count = 10) {
+        for(let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+    }
+
+    // --- 將原本手繪的背景替換為外部圖片 ---
+    function drawArenaBackground(ctx) {
+        ctx.fillStyle = '#f7f5f0';
+        ctx.fillRect(0, 0, cw, ch);
+
+        if (bgLoaded && bgImage.complete && bgImage.naturalHeight > 0) {
+            ctx.save();
+            let cx = cw / 2;
+            let cy = ch / 2;
+            
+            let scale = (circleRadius * 2.1) / bgImage.naturalHeight;
+            let w = bgImage.naturalWidth * scale;
+            let h = bgImage.naturalHeight * scale;
+            
+            ctx.translate(cx, cy);
+            ctx.drawImage(bgImage, -w / 2, -h / 2, w, h);
+            ctx.restore();
+        }
+    }
+
+    function gameLoop(timestamp) {
+        if (lastTime === 0) { lastTime = timestamp; requestAnimationFrame(gameLoop); return; }
+        let dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+        if (dt > 0.1) dt = 0.1; 
+
+        if (gameState === 'playing') updateGameplay(dt);
+
+        drawArenaBackground(ctx);
+
+        if (gameState === 'playing' || gameState === 'gameover' || gameState === 'victory' || gameState === 'paused') {
+            hazards.forEach(h => h.drawShadow(ctx));
+
+            let renderables = [];
+            renderables.push({ type: 'player', obj: player, y: player.y });
+            items.forEach(p => renderables.push({ type: 'item', obj: p, y: p.y }));
+            hazards.forEach(h => renderables.push({ type: 'hazard', obj: h, y: h.y }));
+
+            // Y-排序：按地表 Y 軸高低進行圖層排序，產生前後立體遮蔽效果
+            renderables.sort((a, b) => a.y - b.y);
+
+            renderables.forEach(item => {
+                if (item.type === 'player') item.obj.draw(ctx);
+                else if (item.type === 'item') item.obj.draw(ctx);
+                else if (item.type === 'hazard') item.obj.drawEntity(ctx);
+            });
+            
+            particles.forEach(p => p.draw(ctx));
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function updateGameplay(dt) {
+        timeLeft -= dt;
+        if (timeLeft <= 0) { timeLeft = 0; triggerVictory(); return; }
+        timerEl.innerText = Math.ceil(timeLeft);
+
+        player.update(dt);
+        hazards.forEach(h => h.update(dt));
+        items.forEach(p => p.update(dt));
+        particles.forEach(p => p.update(dt));
+
+        hazardSpawnTimer -= dt;
+        let currentSpawnRate = 1.5 - (1.1 * ((40 - timeLeft) / 40)); 
+        if (currentSpawnRate < 0.4) currentSpawnRate = 0.4;
+
+        if (hazardSpawnTimer <= 0) {
+            hazards.push(new Hazard());
+            hazardSpawnTimer = currentSpawnRate;
+        }
+
+        itemSpawnTimer -= dt;
+        if (itemSpawnTimer <= 0) {
+            items.push(new Item());
+            itemSpawnTimer = Math.random() * 3 + 4; 
+        }
+
+        // 道具碰撞
+        items.forEach(p => {
+            let dx = player.x - p.x; let dy = player.y - p.y;
+            // 配合畫面的透視角，將 Y 軸距離放大 2 倍計算，使碰撞範圍變成完美的橢圓形
+            let dist = Math.sqrt(dx*dx + (dy*2)*(dy*2));
+            if (dist < player.radius + p.radius) {
+                p.markedForDeletion = true;
+                
+                if (p.isPositive) {
+                    if (p.type === 'heart') { player.lives = Math.min(3, player.lives + 1); updateHUD(); } 
+                    else if (p.type === 'shield') { player.hasShield = true; shieldIconEl.style.opacity = '1'; shieldIconEl.classList.remove('grayscale'); } 
+                    createParticles(p.x, p.y, p.themeColor, 15); 
+                } else {
+                    if (p.type === 'enlarge') { player.enlargeTimer = 5.0; } 
+                    else if (p.type === 'reverse') { player.reverseTimer = 5.0; }
+                    createParticles(p.x, p.y, p.themeColor, 15); 
+                }
+            }
+        });
+
+        // 炸彈碰撞
+        hazards.forEach(h => {
+            if (h.state === 'exploding') {
+                let dx = player.x - h.x; let dy = player.y - h.y;
+                let dist = Math.sqrt(dx*dx + (dy*2)*(dy*2));
+                
+                if (dist < player.radius + h.radius && player.invincibleTimer <= 0) {
+                    if (player.hasShield) {
+                        player.hasShield = false; shieldIconEl.style.opacity = '0.3'; shieldIconEl.classList.add('grayscale');
+                        player.invincibleTimer = 1.0; 
+                        createParticles(player.x, player.y, pal.windowBlue, 20); 
+                    } else {
+                        player.lives--; updateHUD();
+                        player.invincibleTimer = 1.5; 
+                        createParticles(player.x, player.y, pal.bldDark, 20); 
+                        
+                        canvas.style.transform = `translate(${(Math.random()-0.5)*20}px, ${(Math.random()-0.5)*20}px)`;
+                        setTimeout(() => canvas.style.transform = 'none', 100);
+
+                        if (player.lives <= 0) triggerGameOver();
+                    }
+                }
+            }
+        });
+
+        hazards = hazards.filter(h => !h.markedForDeletion);
+        items = items.filter(p => !p.markedForDeletion);
+        particles = particles.filter(p => p.life > 0);
+    }
+
+    function updateHUD() { livesEl.innerText = '❤️'.repeat(Math.max(0, player.lives)); }
+
+    function showScreen(screenEl) {
+        screenStart.classList.add('hidden'); screenGameOver.classList.add('hidden'); 
+        screenVictory.classList.add('hidden'); screenPause.classList.add('hidden');
+        if (screenEl) {
+            screenEl.classList.remove('hidden'); 
+            screenEl.querySelector('.panel-cartoon').classList.remove('pop-in');
+            void screenEl.offsetWidth; 
+            screenEl.querySelector('.panel-cartoon').classList.add('pop-in');
+        }
+    }
+
+    function startGame() {
+        player.reset(); hazards = []; items = []; particles = [];
+        timeLeft = 40; hazardSpawnTimer = 1.0; itemSpawnTimer = 2.0; 
+        
+        updateHUD(); timerEl.innerText = '40'; 
+        shieldIconEl.style.opacity = '0.3'; shieldIconEl.classList.add('grayscale');
+        
+        showScreen(null); 
+        hud.classList.remove('hidden'); 
+        
+        gameState = 'playing'; lastTime = 0; 
+    }
+
+    function togglePause() {
+        if (gameState === 'playing') {
+            gameState = 'paused';
+            showScreen(screenPause);
+        } else if (gameState === 'paused') {
+            gameState = 'playing';
+            showScreen(null);
+            lastTime = 0; 
+        }
+    }
+
+    function triggerGameOver() { gameState = 'gameover'; hud.classList.add('hidden'); showScreen(screenGameOver); }
+    function triggerVictory() { gameState = 'victory'; hud.classList.add('hidden'); showScreen(screenVictory); }
+
+    function goToHome() {
+        gameState = 'menu';
+        hud.classList.add('hidden');
+        showScreen(screenStart);
+        lastTime = 0; // 暫停遊戲迴圈處理
+    }
+
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-restart-fail').addEventListener('click', startGame);
+    document.getElementById('btn-restart-win').addEventListener('click', startGame);
+    document.getElementById('btn-pause').addEventListener('click', togglePause);
+    document.getElementById('btn-resume-pause').addEventListener('click', togglePause);
+    document.getElementById('btn-restart-pause').addEventListener('click', startGame);
+    
+    // 綁定「回到主畫面」按鈕
+    document.getElementById('btn-home-hud').addEventListener('click', goToHome);
+    document.getElementById('btn-home-pause').addEventListener('click', goToHome);
+    document.getElementById('btn-home-fail').addEventListener('click', goToHome);
+    document.getElementById('btn-home-win').addEventListener('click', goToHome);
+
+    requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
